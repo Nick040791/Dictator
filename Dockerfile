@@ -1,4 +1,3 @@
-# CUDA 12.1 runtime maintains Pascal (sm_61 / GTX 1070) compatibility
 FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -9,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR /app
 
-# 1. System packages: Added build-essential for gcc/make (required by evdev and Cython)
+# 1. System packages: gcc/build-essential, Audio, and Wayland clipboard (no X11)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3 \
@@ -24,17 +23,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     portaudio19-dev \
     alsa-utils \
     pulseaudio-utils \
-    xclip \
     wl-clipboard \
     && rm -rf /var/lib/apt/lists/*
 
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
-# 2. PyTorch with CUDA 12.1 (retains sm_61 Pascal support)
+# 2. PyTorch CUDA 12.1 (preserves Pascal sm_61 kernel binaries)
 RUN pip3 install --upgrade pip setuptools wheel && \
     pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
-# 3. Audio, hotkey, and clipboard libraries (evdev now compiles cleanly via gcc)
+# 3. Audio, hotkey, and clipboard Python packages
 RUN pip3 install \
     sounddevice \
     soundfile \
