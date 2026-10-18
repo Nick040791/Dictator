@@ -29,7 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # 2. PyTorch CUDA 12.1 (preserves Pascal sm_61 kernel binaries)
-RUN pip3 install --upgrade pip setuptools wheel && \
+RUN pip3 install --upgrade pip==26.2.1 setuptools==80.9.0 wheel==0.48.0 && \
     pip3 install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu121
 
 # 3. Audio, hotkey, and clipboard Python packages
@@ -41,7 +41,7 @@ RUN pip3 install \
     evdev==1.9.2
 
 # 4. NVIDIA NeMo ASR
-RUN pip3 install cython && \
+RUN pip3 install cython==3.1.4 && \
     pip3 install "nemo_toolkit[asr]==2.5.1" --extra-index-url https://download.pytorch.org/whl/cu121
 
 # 5. Dictator Application Script
