@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNTIME_DIR="/home/mrnicholas/.local/share/dictator"
+RUNTIME_DIR="${HOME}/.local/share/dictator"
 PID_FILE="$RUNTIME_DIR/dictator.pid"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
-    exec /home/mrnicholas/Dev/Dictator/scripts/stop.sh
+    exec "${SCRIPT_DIR}/stop.sh"
 else
-    exec /home/mrnicholas/Dev/Dictator/scripts/start.sh
+    exec "${SCRIPT_DIR}/start.sh"
 fi

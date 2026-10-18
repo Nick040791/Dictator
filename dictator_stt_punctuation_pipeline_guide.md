@@ -20,12 +20,12 @@ A lightweight, local, low-latency push-to-talk dictation utility for Ubuntu Linu
   Transcribes audio directly via RAM-disk (/dev/shm) into raw text
                 │
                 ▼
-     [ Ollama: Qwen 3.5 (2B) ]
+     [ Ollama: bonsai-2:2b ]
   Restores punctuation & capitalization without modifying words/grammar
                 │
                 ▼
       [ System Clipboard ]
-  Copies final formatted text via xclip / wl-clipboard
+  Copies final formatted text via wl-clipboard
                 │
                 ▼
 [ User pastes clean text anywhere via Ctrl + V ]
@@ -37,9 +37,9 @@ A lightweight, local, low-latency push-to-talk dictation utility for Ubuntu Linu
 
 | Component | VRAM Footprint | Description |
 | :--- | :--- | :--- |
-| **NVIDIA Driver & Display** | ~0.5 – 0.8 GB | Base desktop overhead (GNOME / X11 / Wayland) |
+| **NVIDIA Driver & Display** | ~0.5 – 0.8 GB | Base desktop overhead (Wayland) |
 | **Parakeet TDT 0.6B v3** | ~1.5 – 2.0 GB | Fast RNN-T / TDT acoustic model running on PyTorch/CUDA |
-| **Ollama (Qwen 3.5 2B Q4)** | ~1.5 – 2.0 GB | Punctuation restorer with restricted context (`num_ctx: 1024`) |
+| **Ollama (bonsai-2:2b)** | ~1.5 – 2.0 GB | Punctuation restorer with restricted context (`num_ctx: 1024`) |
 | **Buffer / Headroom** | ~3.0 GB | Available memory ensuring zero CUDA OOM errors |
 
 ---
@@ -48,11 +48,11 @@ A lightweight, local, low-latency push-to-talk dictation utility for Ubuntu Linu
 
 ### Step 1: System Packages (Ubuntu)
 
-Install system-level libraries for PortAudio and clipboard managers (supporting both X11 and Wayland):
+Install system-level libraries for PortAudio and the Wayland clipboard tooling:
 
 ```bash
 sudo apt update
-sudo apt install -y libportaudio2 portaudio19-dev xclip wl-clipboard
+sudo apt install -y libportaudio2 portaudio19-dev wl-clipboard
 ```
 
 ### Step 2: Python Environment
@@ -74,11 +74,11 @@ pip install "nemo_toolkit[asr]"
 
 ### Step 3: Ollama Model Setup
 
-Ensure Ollama is installed and active on your system, then pull the lightweight Qwen 3.5 model:
+Ensure Ollama is installed and active on your system, then pull the punctuation model:
 
 ```bash
 ollama serve &
-ollama pull qwen3.5:2b
+ollama pull bonsai-2:2b
 ```
 
 ---
@@ -373,22 +373,24 @@ source ~/dictator-env/bin/activate
 python dictator.py
 ```
 
-### Wayland vs. X11 Permissions
+### Wayland Permissions
 
-1. **Under X11 (`echo $XDG_SESSION_TYPE` returns `x11`):**
-   * The script captures `Ctrl + E` globally across any active window without extra privileges.
-2. **Under Wayland (`echo $XDG_SESSION_TYPE` returns `wayland`):**
-   * Wayland blocks global keyloggers for security, so the script no longer relies on X11 or `sudo`.
-   * It reads keyboard events directly from `/dev/input` (via `evdev`), which works for both X11 and Wayland sessions. Make sure your user can read the keyboard devices, usually by being in the `input` group:
-     ```bash
-     sudo usermod -aG input $USER
-     ```
-     Then log out and back in. After that, run normally:
-     ```bash
-     source ~/dictator-env/bin/activate
-     python dictator.py
-     ```
-   * *Alternative native solution*: Bind a custom keyboard shortcut under **Settings → Keyboard → View and Customize Shortcuts** to trigger an IPC flag (or run an activation script) if direct `/dev/input` access is undesirable.
+This setup targets Wayland sessions. Wayland blocks global keyloggers for security, so Dictator does not rely on X11.
+
+It reads keyboard events directly from `/dev/input` (via `evdev`), which works on Wayland. Make sure your user can read the keyboard devices by joining the `input` group:
+
+```bash
+sudo usermod -aG input $USER
+```
+
+Then log out and back in. After that, run normally:
+
+```bash
+source ~/dictator-env/bin/activate
+python dictator.py
+```
+
+*Alternative native solution*: Bind a custom keyboard shortcut under **Settings → Keyboard → View and Customize Shortcuts** to trigger an IPC flag (or run an activation script) if direct `/dev/input` access is undesirable.
 
 ### Optimizations Included
 
