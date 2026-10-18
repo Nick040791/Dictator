@@ -4,7 +4,8 @@ Type=Application
 Name=Dictator
 GenericName=Push-to-Talk Dictation
 Comment=Start/stop the Dictator speech-to-text service
-Exec=/home/mrnicholas/Dev/Dictator/scripts/toggle.sh
+# @PROJECT_DIR@ is replaced with the real install path by install.sh
+Exec=@PROJECT_DIR@/scripts/toggle.sh
 Icon=audio-input-microphone
 Terminal=false
 Categories=Utility;
@@ -14,12 +15,12 @@ Actions=Start;Stop;Restart;
 
 [Desktop Action Start]
 Name=Start
-Exec=/home/mrnicholas/Dev/Dictator/scripts/start.sh
+Exec=@PROJECT_DIR@/scripts/start.sh
 
 [Desktop Action Stop]
 Name=Stop
-Exec=/home/mrnicholas/Dev/Dictator/scripts/stop.sh
+Exec=@PROJECT_DIR@/scripts/stop.sh
 
 [Desktop Action Restart]
 Name=Restart
-Exec=/home/mrnicholas/Dev/Dictator/scripts/restart.sh
+Exec=@PROJECT_DIR@/scripts/restart.sh
