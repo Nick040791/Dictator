@@ -48,6 +48,8 @@ Hold **Ctrl + E** to record, release to transcribe, punctuate, and copy the resu
 
 ## 3. System Requirements & Installation
 
+An automated installer is provided at the repo root: `./install.sh`. It performs all steps below (system packages, venv, dependencies, Ollama model, input group, desktop launcher).
+
 ### Step 1: System Packages (Ubuntu, Wayland)
 
 Install PortAudio and the Wayland clipboard tooling:

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="/home/mrnicholas/Dev/Dictator"
-VENV_PYTHON="/home/mrnicholas/dictator-env/bin/python"
-RUNTIME_DIR="/home/mrnicholas/.local/share/dictator"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+VENV_PYTHON="${HOME}/dictator-env/bin/python"
+RUNTIME_DIR="${HOME}/.local/share/dictator"
 PID_FILE="$RUNTIME_DIR/dictator.pid"
 LOG_FILE="$RUNTIME_DIR/dictator.log"
 

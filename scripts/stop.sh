@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RUNTIME_DIR="/home/mrnicholas/.local/share/dictator"
+RUNTIME_DIR="${HOME}/.local/share/dictator"
 PID_FILE="$RUNTIME_DIR/dictator.pid"
 
 stopped=0
@@ -16,8 +16,8 @@ if [[ -f "$PID_FILE" ]]; then
 fi
 
 # Fallback for processes started outside this wrapper.
-if pgrep -f "/home/mrnicholas/dictator-env/bin/python.*dictator.py" >/dev/null 2>&1; then
-    pkill -f "/home/mrnicholas/dictator-env/bin/python.*dictator.py" 2>/dev/null || true
+if pgrep -f "${HOME}/dictator-env/bin/python.*dictator.py" >/dev/null 2>&1; then
+    pkill -f "${HOME}/dictator-env/bin/python.*dictator.py" 2>/dev/null || true
     stopped=1
     echo "Stopped remaining Dictator process(es)."
 fi
