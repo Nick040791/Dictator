@@ -59,16 +59,20 @@ echo "[6/6] Setting up runtime dir and desktop launcher..."
 mkdir -p "${RUNTIME_DIR}"
 chmod +x "${PROJECT_DIR}/scripts/"*.sh 2>/dev/null || true
 
-DESKTOP_FILE="${PROJECT_DIR}/dictator.desktop"
-if [[ -f "${DESKTOP_FILE}" ]]; then
-    chmod +x "${DESKTOP_FILE}"
+# The repo ships dictator.desktop with an @PROJECT_DIR@ placeholder so no
+# machine-specific path is committed. Resolve it to this checkout at install time.
+DESKTOP_TEMPLATE="${PROJECT_DIR}/dictator.desktop"
+if [[ -f "${DESKTOP_TEMPLATE}" ]]; then
+    RESOLVED_DESKTOP="$(mktemp)"
+    sed "s|@PROJECT_DIR@|${PROJECT_DIR}|g" "${DESKTOP_TEMPLATE}" > "${RESOLVED_DESKTOP}"
     mkdir -p "${HOME}/.local/share/applications"
-    cp "${DESKTOP_FILE}" "${HOME}/.local/share/applications/dictator.desktop"
+    cp "${RESOLVED_DESKTOP}" "${HOME}/.local/share/applications/dictator.desktop"
     if [[ -d "${HOME}/Desktop" ]]; then
-        cp "${DESKTOP_FILE}" "${HOME}/Desktop/dictator.desktop"
+        cp "${RESOLVED_DESKTOP}" "${HOME}/Desktop/dictator.desktop"
         chmod +x "${HOME}/Desktop/dictator.desktop"
         command -v gio >/dev/null 2>&1 && gio set "${HOME}/Desktop/dictator.desktop" metadata::trusted true || true
     fi
+    rm -f "${RESOLVED_DESKTOP}"
 fi
 
 echo

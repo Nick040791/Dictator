@@ -37,7 +37,6 @@ RUN pip3 install \
     sounddevice \
     soundfile \
     numpy \
-    pynput \
     pyperclip \
     evdev
 
