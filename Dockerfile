@@ -1,4 +1,4 @@
-# 1. Base image: CUDA 12.1 runtime maintains full Pascal (sm_61 / GTX 1070) support
+# CUDA 12.1 runtime maintains Pascal (sm_61 / GTX 1070) compatibility
 FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -9,14 +9,14 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR /app
 
-# 2. System dependencies (Audio, Clipboard for X11 & Wayland, Build tools)
+# 1. System packages: Added build-essential for gcc/make (required by evdev and Cython)
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     python3 \
     python3-pip \
     python3-dev \
     git \
     bash \
-    curl \
     ca-certificates \
     ffmpeg \
     libsndfile1 \
@@ -30,16 +30,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
-# 3. Node.js 22 LTS (Required for Claude Code and OpenCode CLI)
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y --no-install-recommends nodejs \
-    && rm -rf /var/lib/apt/lists/*
-
-# 4. PyTorch cu121 with guaranteed sm_61 Pascal kernel binaries
+# 2. PyTorch with CUDA 12.1 (retains sm_61 Pascal support)
 RUN pip3 install --upgrade pip setuptools wheel && \
     pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
-# 5. Audio recording, input capture, and clipboard libraries
+# 3. Audio, hotkey, and clipboard libraries (evdev now compiles cleanly via gcc)
 RUN pip3 install \
     sounddevice \
     soundfile \
@@ -47,22 +42,11 @@ RUN pip3 install \
     pynput \
     pyperclip
 
-# 6. NVIDIA NeMo ASR (uses --extra-index-url to prevent overwriting cu121 PyTorch)
+# 4. NVIDIA NeMo ASR
 RUN pip3 install cython && \
     pip3 install "nemo_toolkit[asr]" --extra-index-url https://download.pytorch.org/whl/cu121
 
-# 7. Global CLI agents
-RUN npm install -g \
-    @anthropic-ai/claude-code \
-    @opencode/cli
-
-# 8. Claude Code configuration from build context
-RUN mkdir -p /root/.claude
-COPY config/settings.json /root/.claude/settings.json
-COPY config/claude-statusline.sh /root/.claude/claude-statusline.sh
-RUN chmod +x /root/.claude/claude-statusline.sh
-
-# 9. Application script
+# 5. Dictator Application Script
 COPY dictator.py /app/dictator.py
 
 CMD ["python", "/app/dictator.py"]
