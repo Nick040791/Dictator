@@ -1,3 +1,20 @@
+# Local configuration (user-specific)
 config/*
 
+# Python
 __pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+*.pyo
+
+# Runtime artifacts
+*.log
+*.pid
+.dictator/
+
+# OS/editor
+.DS_Store
+*.swp

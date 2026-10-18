@@ -100,16 +100,16 @@ Log out and back in for the group change to take effect. (No `sudo` is required 
 
 ```bash
 source ~/dictator-env/bin/activate
-python /home/mrnicholas/Dev/Dictator/dictator.py
+python ~/Dev/Dictator/dictator.py
 ```
 
 ### Background service (provided scripts)
 
 ```bash
-/home/mrnicholas/Dev/Dictator/scripts/start.sh    # start (no-op if already running)
-/home/mrnicholas/Dev/Dictator/scripts/stop.sh     # stop
-/home/mrnicholas/Dev/Dictator/scripts/restart.sh  # restart
-/home/mrnicholas/Dev/Dictator/scripts/toggle.sh   # start or stop depending on state
+~/Dev/Dictator/scripts/start.sh    # start (no-op if already running)
+~/Dev/Dictator/scripts/stop.sh     # stop
+~/Dev/Dictator/scripts/restart.sh  # restart
+~/Dev/Dictator/scripts/toggle.sh   # start or stop depending on state
 ```
 
 `start.sh` runs the app with `nohup` and writes logs to `~/.local/share/dictator/dictator.log` (PID in `~/.local/share/dictator/dictator.pid`).
@@ -119,7 +119,7 @@ python /home/mrnicholas/Dev/Dictator/dictator.py
 A ready-to-use launcher is provided as `dictator.desktop`. To use it from the desktop:
 
 ```bash
-cp /home/mrnicholas/Dev/Dictator/dictator.desktop ~/Desktop/dictator.desktop
+cp ~/Dev/Dictator/dictator.desktop ~/Desktop/dictator.desktop
 chmod +x ~/Desktop/dictator.desktop
 gio set ~/Desktop/dictator.desktop metadata::trusted true
 ```
