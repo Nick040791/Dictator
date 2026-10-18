@@ -142,4 +142,3 @@ Double-clicking the icon toggles the service (start if stopped, stop if running)
 * **Ollama errors / fallback to raw transcript** — ensure `ollama serve` is running and `bonsai-2:2b` is pulled.
 * **No audio captured** — check microphone permissions / PulseAudio/PipeWire and that `libportaudio2` is installed.
 * **Logs:** `tail -f ~/.local/share/dictator/dictator.log`
-path: /home/mrnicholas/Dev/Dictator/README.md
