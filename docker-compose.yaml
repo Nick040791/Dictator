@@ -12,7 +12,7 @@ services:
       - WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
       - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
       - OLLAMA_URL=http://127.0.0.1:11434/api/generate
-      - OLLAMA_MODEL=qwen3.5:2b
+      - OLLAMA_MODEL=bonsai-2:2b
       - SAMPLE_RATE=16000
     devices:
       - /dev/snd:/dev/snd      # Microphone hardware

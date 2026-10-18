@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR /app
 
-# 1. System packages: gcc/build-essential, Audio, and Wayland clipboard (no X11)
+# 1. System packages: gcc/build-essential, Audio, and Wayland clipboard
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3 \
