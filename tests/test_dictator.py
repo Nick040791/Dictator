@@ -105,14 +105,16 @@ class TestFormatPunctuation:
 
     def test_returns_model_response(self):
         with mock.patch.object(
-            dictator.urllib.request, "urlopen",
+            dictator.urllib.request,
+            "urlopen",
             return_value=self._fake_response({"response": "Hello world."}),
         ):
             assert dictator.format_punctuation_ollama("hello world") == "Hello world."
 
     def test_falls_back_to_raw_on_error(self):
         with mock.patch.object(
-            dictator.urllib.request, "urlopen",
+            dictator.urllib.request,
+            "urlopen",
             side_effect=urllib.error.URLError("down"),
         ):
             raw = "no punctuation here"
@@ -126,7 +128,9 @@ class TestFormatPunctuation:
             captured["payload"] = json.loads(req.data.decode())
             return self._fake_response({"response": "x"})
 
-        with mock.patch.object(dictator.urllib.request, "urlopen", side_effect=_capture):
+        with mock.patch.object(
+            dictator.urllib.request, "urlopen", side_effect=_capture
+        ):
             dictator.format_punctuation_ollama("hi")
 
         assert captured["url"] == dictator.OLLAMA_URL
@@ -165,8 +169,10 @@ class TestHotkeyStateMachine:
 
     def test_partial_key_release_does_not_stop(self):
         # Holding Ctrl alone (never reached full combo) then releasing it.
-        with mock.patch.object(dictator, "start_audio_capture") as fake_start, \
-             mock.patch.object(dictator, "run_pipeline") as fake_pipe:
+        with (
+            mock.patch.object(dictator, "start_audio_capture") as fake_start,
+            mock.patch.object(dictator, "run_pipeline") as fake_pipe,
+        ):
             dictator._handle_evdev_event(dictator.ecodes.KEY_LEFTCTRL, 1)
             dictator._handle_evdev_event(dictator.ecodes.KEY_LEFTCTRL, 0)
         fake_start.assert_not_called()
@@ -195,10 +201,12 @@ class TestHotkeyStateMachine:
             def start(self):
                 self._t(*self._a)
 
-        with mock.patch.object(dictator, "start_audio_capture", side_effect=fake_start), \
-             mock.patch.object(dictator, "stop_audio_capture", side_effect=fake_stop), \
-             mock.patch.object(dictator, "run_pipeline") as fake_pipe, \
-             mock.patch.object(dictator.threading, "Thread", _FakeThread):
+        with (
+            mock.patch.object(dictator, "start_audio_capture", side_effect=fake_start),
+            mock.patch.object(dictator, "stop_audio_capture", side_effect=fake_stop),
+            mock.patch.object(dictator, "run_pipeline") as fake_pipe,
+            mock.patch.object(dictator.threading, "Thread", _FakeThread),
+        ):
             # Press both keys -> starts capture.
             dictator._handle_evdev_event(dictator.ecodes.KEY_LEFTCTRL, 1)
             dictator._handle_evdev_event(dictator.ecodes.KEY_E, 1)
@@ -225,18 +233,21 @@ class TestCheckOllama:
 
             def __exit__(self, *a):
                 return False
+
         return _R()
 
     def test_model_present_returns_true(self):
         with mock.patch.object(
-            dictator.urllib.request, "urlopen",
+            dictator.urllib.request,
+            "urlopen",
             return_value=self._resp({"models": [{"name": dictator.OLLAMA_MODEL}]}),
         ):
             assert dictator.check_ollama() is True
 
     def test_unreachable_returns_false(self):
         with mock.patch.object(
-            dictator.urllib.request, "urlopen",
+            dictator.urllib.request,
+            "urlopen",
             side_effect=urllib.error.URLError("refused"),
         ):
             assert dictator.check_ollama() is False

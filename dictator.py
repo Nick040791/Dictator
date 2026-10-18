@@ -33,9 +33,7 @@ OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "bonsai-2:2b")
 ASR_MODEL_ID = os.environ.get("DICTATOR_ASR_MODEL", "nvidia/parakeet-tdt-0.6b-v3")
 HOTKEY_SPEC = os.environ.get("DICTATOR_HOTKEY", "ctrl+e")
-RAM_DISK_TEMP_PATH = os.environ.get(
-    "DICTATOR_TEMP_WAV", "/dev/shm/dictator_temp.wav"
-)
+RAM_DISK_TEMP_PATH = os.environ.get("DICTATOR_TEMP_WAV", "/dev/shm/dictator_temp.wav")
 # =================================================
 
 
@@ -354,8 +352,7 @@ def _hotkey_loop():
                 events = list(dev.read())
             except (OSError, BlockingIOError):
                 print(
-                    f"[Input] Keyboard device removed: "
-                    f"{getattr(dev, 'name', dev.path)}"
+                    f"[Input] Keyboard device removed: {getattr(dev, 'name', dev.path)}"
                 )
                 if dev in devices:
                     devices.remove(dev)
@@ -377,23 +374,29 @@ def parse_args(argv=None):
         description="Push-to-talk speech-to-text with automatic punctuation.",
     )
     parser.add_argument(
-        "--sample-rate", type=int, default=SAMPLE_RATE,
+        "--sample-rate",
+        type=int,
+        default=SAMPLE_RATE,
         help="Capture sample rate in Hz (default: %(default)s).",
     )
     parser.add_argument(
-        "--ollama-url", default=OLLAMA_URL,
+        "--ollama-url",
+        default=OLLAMA_URL,
         help="Ollama generate endpoint (default: %(default)s).",
     )
     parser.add_argument(
-        "--ollama-model", default=OLLAMA_MODEL,
+        "--ollama-model",
+        default=OLLAMA_MODEL,
         help="Ollama model used for punctuation (default: %(default)s).",
     )
     parser.add_argument(
-        "--asr-model", default=ASR_MODEL_ID,
+        "--asr-model",
+        default=ASR_MODEL_ID,
         help="NeMo/Hugging Face ASR model id (default: %(default)s).",
     )
     parser.add_argument(
-        "--hotkey", default=HOTKEY_SPEC,
+        "--hotkey",
+        default=HOTKEY_SPEC,
         help="Push-to-talk hotkey, e.g. 'ctrl+e' (default: %(default)s).",
     )
     return parser.parse_args(argv)
