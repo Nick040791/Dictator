@@ -42,7 +42,7 @@ RUN pip3 install \
 
 # 4. NVIDIA NeMo ASR
 RUN pip3 install cython && \
-    pip3 install "nemo_toolkit[asr]" --extra-index-url https://download.pytorch.org/whl/cu121
+    pip3 install "nemo_toolkit[asr]==2.5.1" --extra-index-url https://download.pytorch.org/whl/cu121
 
 # 5. Dictator Application Script
 COPY dictator.py /app/dictator.py
