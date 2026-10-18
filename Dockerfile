@@ -30,7 +30,7 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # 2. PyTorch CUDA 12.1 (preserves Pascal sm_61 kernel binaries)
 RUN pip3 install --upgrade pip setuptools wheel && \
-    pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+    pip3 install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu121
 
 # 3. Audio, hotkey, and clipboard Python packages
 RUN pip3 install \
