@@ -1,0 +1,25 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Dictator
+GenericName=Push-to-Talk Dictation
+Comment=Start/stop the Dictator speech-to-text service
+Exec=/home/mrnicholas/Dev/Dictator/scripts/toggle.sh
+Icon=audio-input-microphone
+Terminal=false
+Categories=Utility;
+StartupNotify=false
+Keywords=dictation;speech;stt;voice;
+Actions=Start;Stop;Restart;
+
+[Desktop Action Start]
+Name=Start
+Exec=/home/mrnicholas/Dev/Dictator/scripts/start.sh
+
+[Desktop Action Stop]
+Name=Stop
+Exec=/home/mrnicholas/Dev/Dictator/scripts/stop.sh
+
+[Desktop Action Restart]
+Name=Restart
+Exec=/home/mrnicholas/Dev/Dictator/scripts/restart.sh
