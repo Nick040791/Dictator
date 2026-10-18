@@ -35,8 +35,8 @@ RUN pip3 install --upgrade pip setuptools wheel && \
 # 3. Audio, hotkey, and clipboard Python packages
 RUN pip3 install \
     sounddevice==0.5.1 \
-    soundfile \
-    numpy \
+    soundfile==0.13.1 \
+    numpy==2.2.6 \
     pyperclip==1.9.0 \
     evdev==1.9.2
 
