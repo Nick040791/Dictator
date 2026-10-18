@@ -34,11 +34,11 @@ RUN pip3 install --upgrade pip setuptools wheel && \
 
 # 3. Audio, hotkey, and clipboard Python packages
 RUN pip3 install \
-    sounddevice \
+    sounddevice==0.5.1 \
     soundfile \
     numpy \
-    pyperclip \
-    evdev
+    pyperclip==1.9.0 \
+    evdev==1.9.2
 
 # 4. NVIDIA NeMo ASR
 RUN pip3 install cython && \
