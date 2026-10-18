@@ -1,0 +1,40 @@
+services:
+  dictator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dictator:latest
+    container_name: dictator
+    restart: unless-stopped
+    network_mode: "host"       # Connects directly to host Ollama on localhost:11434
+    ipc: "host"                # Shares /dev/shm RAM-disk for zero-copy audio transfer
+    environment:
+      - DISPLAY=${DISPLAY}
+      - WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
+      - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
+      - OLLAMA_URL=http://127.0.0.1:11434/api/generate
+      - OLLAMA_MODEL=qwen3.5:2b
+      - SAMPLE_RATE=16000
+    devices:
+      - /dev/snd:/dev/snd      # Microphone audio input
+      - /dev/input:/dev/input  # Keyboard event capture for pynput
+    group_add:
+      - input                  # Grants access to /dev/input event nodes
+      - audio                  # Grants direct ALSA hardware access
+    volumes:
+      # X11 sockets and authority (for xclip and X11 hotkey capture)
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      - ${HOME}/.Xauthority:/root/.Xauthority:ro
+      # Wayland socket passthrough (for wl-clipboard)
+      - ${XDG_RUNTIME_DIR}:${XDG_RUNTIME_DIR}:ro
+      # In-memory filesystem for temporary audio files
+      - /dev/shm:/dev/shm
+      # Mount script for immediate edits without image rebuilds
+      - ./dictator.py:/app/dictator.py:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
