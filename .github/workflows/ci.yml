@@ -46,7 +46,7 @@ jobs:
       - name: Byte-compile
         run: python -m py_compile dictator.py
       - name: Run tests
-        run: pytest -q
+        run: PYTHONPATH=. pytest -q
 
   shellcheck:
     name: Shell script lint
