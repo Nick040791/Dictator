@@ -7,6 +7,7 @@ Hotkeys: Hold Ctrl + E to record, release to transcribe, punctuate, and copy.
 import os
 import json
 import queue
+import time
 import threading
 import urllib.request
 import select
@@ -183,9 +184,9 @@ def _keyboard_devices():
     for path in evdev.list_devices():
         try:
             dev = evdev.InputDevice(path)
+            caps = dev.capabilities().get(ecodes.EV_KEY, [])
         except Exception:
             continue
-        caps = dev.capabilities().get(ecodes.EV_KEY, [])
         if not (ecodes.KEY_LEFTCTRL in caps or ecodes.KEY_RIGHTCTRL in caps or ecodes.KEY_E in caps):
             continue
         devices.append(dev)
@@ -220,13 +221,45 @@ if __name__ == "__main__":
 
     print(f"[Input] Monitoring {len(devices)} keyboard device(s) for Ctrl + E.")
 
+    known_paths = {dev.path for dev in devices}
+    last_rescan = time.time()
+
     try:
         while True:
-            readable, _, _ = select.select(devices, [], [], 0.5)
-            for dev in readable:
+            # Periodically rescan for hot-plugged keyboards.
+            if time.time() - last_rescan > 5.0:
+                last_rescan = time.time()
+                for dev in _keyboard_devices():
+                    if dev.path not in known_paths:
+                        devices.append(dev)
+                        known_paths.add(dev.path)
+                        print(f"[Input] Added keyboard device: {dev.name}")
+
+            if not devices:
+                print("[Input] No keyboard devices available; rescanning...")
+                time.sleep(1.0)
+                devices = _keyboard_devices()
+                known_paths = {dev.path for dev in devices}
+                continue
+
+            try:
+                readable, _, _ = select.select(devices, [], [], 0.5)
+            except (ValueError, OSError):
+                time.sleep(0.5)
+                continue
+
+            for dev in list(readable):
                 try:
-                    events = dev.read()
-                except (OSError, IOError):
+                    events = list(dev.read())
+                except (OSError, IOError, BlockingIOError):
+                    print(f"[Input] Keyboard device removed: {getattr(dev, 'name', dev.path)}")
+                    if dev in devices:
+                        devices.remove(dev)
+                    known_paths.discard(dev.path)
+                    try:
+                        dev.close()
+                    except Exception:
+                        pass
                     continue
                 for event in events:
                     if event.type == ecodes.EV_KEY:

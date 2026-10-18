@@ -97,20 +97,26 @@ Hotkeys: Hold Ctrl + E to record, release to transcribe, punctuate, and copy.
 import os
 import json
 import queue
+import os
+import json
+import queue
 import threading
+import time
+import select
 import urllib.request
 import numpy as np
 import sounddevice as sd
 import soundfile as sf
 import pyperclip
-from pynput import keyboard
+import evdev
+from evdev import ecodes
 import torch
 
 # ================= Configuration =================
 SAMPLE_RATE = 16000          # Parakeet native sample rate (16 kHz mono)
 OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "qwen3.5:2b"
-HOTKEY_KEYS = {keyboard.Key.ctrl, keyboard.KeyCode(char='e')}
+OLLAMA_MODEL = "bonsai-2:2b"
+HOTKEY_KEYS = {"ctrl", "e"}
 RAM_DISK_TEMP_PATH = "/dev/shm/dictator_temp.wav"
 # =================================================
 
@@ -255,36 +261,105 @@ def run_pipeline():
 
 
 # ================= Hotkey Handlers =================
-def normalize_key(key):
-    """Resolves Left/Right Ctrl to a single Key.ctrl value."""
-    if key in (keyboard.Key.ctrl_l, keyboard.Key.ctrl_r):
-        return keyboard.Key.ctrl
-    return key
+currently_pressed = set()
 
 
-def on_press(key):
-    normalized = normalize_key(key)
+def _normalize_evdev_key(code):
+    """Maps evdev key codes to the normalized hotkey tokens."""
+    if code in (ecodes.KEY_LEFTCTRL, ecodes.KEY_RIGHTCTRL):
+        return "ctrl"
+    if code == ecodes.KEY_E:
+        return "e"
+    return None
+
+
+def _keyboard_devices():
+    """Returns readable evdev devices capable of emitting Ctrl or E."""
+    devices = []
+    for path in evdev.list_devices():
+        try:
+            dev = evdev.InputDevice(path)
+            caps = dev.capabilities().get(ecodes.EV_KEY, [])
+        except Exception:
+            continue
+        if not (ecodes.KEY_LEFTCTRL in caps or ecodes.KEY_RIGHTCTRL in caps or ecodes.KEY_E in caps):
+            continue
+        devices.append(dev)
+    return devices
+
+
+def _handle_evdev_event(code, value):
+    """Updates hotkey state from a single evdev key event."""
+    global is_recording
+    key = _normalize_evdev_key(code)
+    if key is None:
+        return
+
     with lock:
-        currently_pressed.add(normalized)
-        if HOTKEY_KEYS.issubset(currently_pressed) and not is_recording:
-            start_audio_capture()
-
-
-def on_release(key):
-    normalized = normalize_key(key)
-    with lock:
-        was_recording = is_recording
-        if normalized in currently_pressed:
-            currently_pressed.remove(normalized)
-
-        # Trigger processing once any hotkey key is released
-        if was_recording and not HOTKEY_KEYS.issubset(currently_pressed):
-            threading.Thread(target=run_pipeline, daemon=True).start()
+        if value in (1, 2):  # press or repeat
+            currently_pressed.add(key)
+            if HOTKEY_KEYS.issubset(currently_pressed) and not is_recording:
+                start_audio_capture()
+        elif value == 0:  # release
+            was_recording = is_recording
+            currently_pressed.discard(key)
+            if was_recording and not HOTKEY_KEYS.issubset(currently_pressed):
+                threading.Thread(target=run_pipeline, daemon=True).start()
 
 
 if __name__ == "__main__":
-    with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
-        listener.join()
+    devices = _keyboard_devices()
+    if not devices:
+        print("[Error] No readable keyboard devices found under /dev/input.")
+        print("        Make sure you have read access (input group) to the keyboard device files.")
+        raise SystemExit(1)
+
+    print(f"[Input] Monitoring {len(devices)} keyboard device(s) for Ctrl + E.")
+
+    known_paths = {dev.path for dev in devices}
+    last_rescan = time.time()
+
+    try:
+        while True:
+            if time.time() - last_rescan > 5.0:
+                last_rescan = time.time()
+                for dev in _keyboard_devices():
+                    if dev.path not in known_paths:
+                        devices.append(dev)
+                        known_paths.add(dev.path)
+                        print(f"[Input] Added keyboard device: {dev.name}")
+
+            if not devices:
+                print("[Input] No keyboard devices available; rescanning...")
+                time.sleep(1.0)
+                devices = _keyboard_devices()
+                known_paths = {dev.path for dev in devices}
+                continue
+
+            try:
+                readable, _, _ = select.select(devices, [], [], 0.5)
+            except (ValueError, OSError):
+                time.sleep(0.5)
+                continue
+
+            for dev in list(readable):
+                try:
+                    events = list(dev.read())
+                except (OSError, IOError, BlockingIOError):
+                    print(f"[Input] Keyboard device removed: {getattr(dev, 'name', dev.path)}")
+                    if dev in devices:
+                        devices.remove(dev)
+                    known_paths.discard(dev.path)
+                    try:
+                        dev.close()
+                    except Exception:
+                        pass
+                    continue
+                for event in events:
+                    if event.type == ecodes.EV_KEY:
+                        _handle_evdev_event(event.code, event.value)
+    except KeyboardInterrupt:
+        print("\n[Exiting Dictator]")
 ```
 
 ---
