@@ -9,18 +9,20 @@ import json
 import queue
 import threading
 import urllib.request
+import select
 import numpy as np
 import sounddevice as sd
 import soundfile as sf
 import pyperclip
-from pynput import keyboard
+import evdev
+from evdev import ecodes
 import torch
 
 # ================= Configuration =================
 SAMPLE_RATE = 16000          # Parakeet native sample rate (16 kHz mono)
 OLLAMA_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL = "qwen3.5:2b"
-HOTKEY_KEYS = {keyboard.Key.ctrl, keyboard.KeyCode(char='e')}
+OLLAMA_MODEL = "bonsai-2:2b"
+HOTKEY_KEYS = {"ctrl", "e"}
 RAM_DISK_TEMP_PATH = "/dev/shm/dictator_temp.wav"
 # =================================================
 
@@ -33,7 +35,7 @@ lock = threading.Lock()
 print("[1/3] Loading NVIDIA Parakeet TDT ASR model...")
 import nemo.collections.asr as nemo_asr
 parakeet_model = nemo_asr.models.ASRModel.from_pretrained(
-    model_name="nvidia/parakeet-tdt-0.6b-en"
+    model_name="nvidia/parakeet-tdt-0.6b-v3"
 )
 parakeet_model.eval()
 
@@ -99,7 +101,11 @@ def transcribe_parakeet(audio_data: np.ndarray) -> str:
     sf.write(RAM_DISK_TEMP_PATH, audio_data, SAMPLE_RATE)
     try:
         results = parakeet_model.transcribe([RAM_DISK_TEMP_PATH])
-        return results[0].strip() if results else ""
+        if not results:
+            return ""
+        first = results[0]
+        text = getattr(first, "text", first)
+        return str(text).strip()
     finally:
         if os.path.exists(RAM_DISK_TEMP_PATH):
             os.remove(RAM_DISK_TEMP_PATH)
@@ -118,6 +124,7 @@ def format_punctuation_ollama(raw_text: str) -> str:
         "model": OLLAMA_MODEL,
         "prompt": prompt,
         "stream": False,
+        "think": False,
         "options": {
             "temperature": 0.0,
             "num_ctx": 1024
@@ -131,7 +138,7 @@ def format_punctuation_ollama(raw_text: str) -> str:
     )
 
     try:
-        with urllib.request.urlopen(req, timeout=8) as response:
+        with urllib.request.urlopen(req, timeout=15) as response:
             res_data = json.loads(response.read().decode("utf-8"))
             return res_data.get("response", "").strip()
     except Exception as err:
@@ -152,7 +159,7 @@ def run_pipeline():
         return
     print(f"  Raw STT: {raw_text}")
 
-    print("[Punctuating with Qwen 3.5...]")
+    print(f"[Punctuating with {OLLAMA_MODEL}...]")
     punctuated_text = format_punctuation_ollama(raw_text)
     print(f"  Cleaned: {punctuated_text}")
 
@@ -161,33 +168,68 @@ def run_pipeline():
 
 
 # ================= Hotkey Handlers =================
-def normalize_key(key):
-    """Resolves Left/Right Ctrl to a single Key.ctrl value."""
-    if key in (keyboard.Key.ctrl_l, keyboard.Key.ctrl_r):
-        return keyboard.Key.ctrl
-    return key
+def _normalize_evdev_key(code):
+    """Maps evdev key codes to the normalized hotkey tokens."""
+    if code in (ecodes.KEY_LEFTCTRL, ecodes.KEY_RIGHTCTRL):
+        return "ctrl"
+    if code == ecodes.KEY_E:
+        return "e"
+    return None
 
 
-def on_press(key):
-    normalized = normalize_key(key)
+def _keyboard_devices():
+    """Returns readable evdev devices capable of emitting Ctrl or E."""
+    devices = []
+    for path in evdev.list_devices():
+        try:
+            dev = evdev.InputDevice(path)
+        except Exception:
+            continue
+        caps = dev.capabilities().get(ecodes.EV_KEY, [])
+        if not (ecodes.KEY_LEFTCTRL in caps or ecodes.KEY_RIGHTCTRL in caps or ecodes.KEY_E in caps):
+            continue
+        devices.append(dev)
+    return devices
+
+
+def _handle_evdev_event(code, value):
+    """Updates hotkey state from a single evdev key event."""
+    global is_recording
+    key = _normalize_evdev_key(code)
+    if key is None:
+        return
+
     with lock:
-        currently_pressed.add(normalized)
-        if HOTKEY_KEYS.issubset(currently_pressed) and not is_recording:
-            start_audio_capture()
-
-
-def on_release(key):
-    normalized = normalize_key(key)
-    with lock:
-        was_recording = is_recording
-        if normalized in currently_pressed:
-            currently_pressed.remove(normalized)
-
-        # Trigger processing once any hotkey key is released
-        if was_recording and not HOTKEY_KEYS.issubset(currently_pressed):
-            threading.Thread(target=run_pipeline, daemon=True).start()
+        if value in (1, 2):  # press or repeat
+            currently_pressed.add(key)
+            if HOTKEY_KEYS.issubset(currently_pressed) and not is_recording:
+                start_audio_capture()
+        elif value == 0:  # release
+            was_recording = is_recording
+            currently_pressed.discard(key)
+            if was_recording and not HOTKEY_KEYS.issubset(currently_pressed):
+                threading.Thread(target=run_pipeline, daemon=True).start()
 
 
 if __name__ == "__main__":
-    with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
-        listener.join()
+    devices = _keyboard_devices()
+    if not devices:
+        print("[Error] No readable keyboard devices found under /dev/input.")
+        print("        Make sure you have read access (input group) to the keyboard device files.")
+        raise SystemExit(1)
+
+    print(f"[Input] Monitoring {len(devices)} keyboard device(s) for Ctrl + E.")
+
+    try:
+        while True:
+            readable, _, _ = select.select(devices, [], [], 0.5)
+            for dev in readable:
+                try:
+                    events = dev.read()
+                except (OSError, IOError):
+                    continue
+                for event in events:
+                    if event.type == ecodes.EV_KEY:
+                        _handle_evdev_event(event.code, event.value)
+    except KeyboardInterrupt:
+        print("\n[Exiting Dictator]")

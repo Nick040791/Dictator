@@ -38,7 +38,8 @@ RUN pip3 install \
     soundfile \
     numpy \
     pynput \
-    pyperclip
+    pyperclip \
+    evdev
 
 # 4. NVIDIA NeMo ASR
 RUN pip3 install cython && \

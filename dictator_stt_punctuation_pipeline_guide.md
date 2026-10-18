@@ -68,7 +68,7 @@ source ~/dictator-env/bin/activate
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 # Install pipeline dependencies
-pip install sounddevice soundfile numpy pynput pyperclip
+pip install sounddevice soundfile numpy pynput pyperclip evdev
 pip install "nemo_toolkit[asr]"
 ```
 
@@ -123,7 +123,7 @@ lock = threading.Lock()
 print("[1/3] Loading NVIDIA Parakeet TDT ASR model...")
 import nemo.collections.asr as nemo_asr
 parakeet_model = nemo_asr.models.ASRModel.from_pretrained(
-    model_name="nvidia/parakeet-tdt-0.6b-en"
+    model_name="nvidia/parakeet-tdt-0.6b-v3"
 )
 parakeet_model.eval()
 
@@ -189,7 +189,11 @@ def transcribe_parakeet(audio_data: np.ndarray) -> str:
     sf.write(RAM_DISK_TEMP_PATH, audio_data, SAMPLE_RATE)
     try:
         results = parakeet_model.transcribe([RAM_DISK_TEMP_PATH])
-        return results[0].strip() if results else ""
+        if not results:
+            return ""
+        first = results[0]
+        text = getattr(first, "text", first)
+        return str(text).strip()
     finally:
         if os.path.exists(RAM_DISK_TEMP_PATH):
             os.remove(RAM_DISK_TEMP_PATH)
@@ -242,7 +246,7 @@ def run_pipeline():
         return
     print(f"  Raw STT: {raw_text}")
 
-    print("[Punctuating with Qwen 3.5...]")
+    print(f"[Punctuating with {OLLAMA_MODEL}...]")
     punctuated_text = format_punctuation_ollama(raw_text)
     print(f"  Cleaned: {punctuated_text}")
 
@@ -299,11 +303,17 @@ python dictator.py
 1. **Under X11 (`echo $XDG_SESSION_TYPE` returns `x11`):**
    * The script captures `Ctrl + E` globally across any active window without extra privileges.
 2. **Under Wayland (`echo $XDG_SESSION_TYPE` returns `wayland`):**
-   * Wayland blocks global keyloggers for security. Run the script with `sudo`:
+   * Wayland blocks global keyloggers for security, so the script no longer relies on X11 or `sudo`.
+   * It reads keyboard events directly from `/dev/input` (via `evdev`), which works for both X11 and Wayland sessions. Make sure your user can read the keyboard devices, usually by being in the `input` group:
      ```bash
-     sudo ~/dictator-env/bin/python dictator.py
+     sudo usermod -aG input $USER
      ```
-   * *Alternative native solution*: Bind a custom keyboard shortcut under **Settings → Keyboard → View and Customize Shortcuts** to trigger an IPC flag (or run an activation script) if root execution is undesirable.
+     Then log out and back in. After that, run normally:
+     ```bash
+     source ~/dictator-env/bin/activate
+     python dictator.py
+     ```
+   * *Alternative native solution*: Bind a custom keyboard shortcut under **Settings → Keyboard → View and Customize Shortcuts** to trigger an IPC flag (or run an activation script) if direct `/dev/input` access is undesirable.
 
 ### Optimizations Included
 
